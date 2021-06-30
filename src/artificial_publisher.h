@@ -1,11 +1,6 @@
 #ifndef ARTIFICIAL_PUBLISHER_H_
 #define ARTIFICIAL_PUBLISHER_H_
 
-#include <math.h>
-#include <stdlib.h>
-#include <string>
-#include <eigen3/Eigen/Dense>
-
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
