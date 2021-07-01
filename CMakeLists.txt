@@ -131,9 +131,9 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-##add_executable(ekf_node src/ekf.cpp)
+add_executable(ekf_node src/ekf.cpp)
 add_executable(artificial_publisher_node src/artificial_publisher.cpp)
-##target_link_libraries(ekf_node ${catkin_LIBRARIES})
+target_link_libraries(ekf_node ${catkin_LIBRARIES})
 target_link_libraries(artificial_publisher_node ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
