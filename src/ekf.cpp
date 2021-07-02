@@ -31,13 +31,12 @@ void EKF::initMatrices()
     double last_time_imu_ = ros::Time::now().toNSec() +
                             (ros::Time::now().toNSec()/1000000000);
 
-    //init values for F_imu_, G_imu_, L_imu_, Q_imu_
+    //init values for jacobians
+    //imu
     F_imu_ = aux_vector.asDiagonal();
     G_imu_.setZero();
     L_imu_.setZero();
-    Q_imu_.setZero();
-
-    //init H_gps_ values
+    //gps
     H_gps_.setZero();
     H_gps_(0,0) = 1;
     H_gps_(1,1) = 1;
@@ -45,9 +44,16 @@ void EKF::initMatrices()
     H_gps_(3,3) = 1;
     H_gps_(4,4) = 1;
     H_gps_(5,5) = 1;
-
-    //init H_wheel_encoder_ values
+    M_gps_.setZero();
+    //wheel encoder
     H_wheel_encoder_.setZero();
+    M_wheel_encoder_.setZero();
+
+    //init values for covariances
+    Q_imu_.setZero();
+    R_gps_.setZero();
+    R_wheel_encoder_.setZero();
+
 }
 
 //creating subscribers
@@ -159,14 +165,16 @@ void EKF::predict()
 void EKF::correct_gps()
 {   
     //avoiding NaN results
-    if((H_gps_*predicted_covariance_*H_gps_.transpose()).determinant() == 0)
+    if((H_gps_*predicted_covariance_*H_gps_.transpose()+
+        M_gps_*R_gps_*M_gps_.transpose()).determinant() == 0)
     {
         //K_k = 0
         kalman_gain_gps_.setZero();
     } else {
-        //K_k = P_k+1|k * H_k^T * (H_k * P_k+1|k * H_k^T)^-1
+        //K_k = P_k+1|k * H_k^T * (H_k * P_k+1|k * H_k^T + M_k * R_k * M_k^T)^-1
         kalman_gain_gps_ = predicted_covariance_*H_gps_.transpose()*
-                       (H_gps_*predicted_covariance_*H_gps_.transpose()).inverse();
+                       (H_gps_*predicted_covariance_*H_gps_.transpose()+
+                        M_gps_*R_gps_*M_gps_.transpose()).inverse();
     };
 
     //correcting
@@ -204,9 +212,10 @@ void EKF::correct_wheel_encoder()
     } else {
         H_wheel_encoder_(0,3) = predicted_state_(3)/sqrt(pow(predicted_state_(3), 2) + pow(predicted_state_(4),2));
         H_wheel_encoder_(0,4) = predicted_state_(4)/sqrt(pow(predicted_state_(3), 2) + pow(predicted_state_(4),2));
-        //K_k = P_k+1|k * H_k^T * (H_k * P_k+1|k * H_k^T)^-1
+        //K_k = P_k+1|k * H_k^T * (H_k * P_k+1|k * H_k^T + M_k * R_k * M_k^T)^-1
         kalman_gain_wheel_encoder_ = predicted_covariance_*H_wheel_encoder_.transpose()*
-                       (H_wheel_encoder_*predicted_covariance_*H_wheel_encoder_.transpose()).inverse();
+                       (H_wheel_encoder_*predicted_covariance_*H_wheel_encoder_.transpose()+
+                        M_wheel_encoder_*R_wheel_encoder_*M_wheel_encoder_.transpose()).inverse();
     };
 
     //correcting

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>state-estimation</name>
+  <name>state_estimation</name>
   <version>0.0.0</version>
   <description>The state-estimation package</description>
 

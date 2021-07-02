@@ -42,6 +42,9 @@ private:
     Eigen::Matrix<double, 9, 9> current_covariance_;
     Eigen::Matrix<double, 9, 9> predicted_covariance_;
     Eigen::Matrix<double, 9, 9> corrected_covariance_;
+    Eigen::Matrix<double, 6, 6> Q_imu_;
+    Eigen::Matrix<double, 6, 6> R_gps_;
+    Eigen::Matrix<double, 1, 1> R_wheel_encoder_;
 
     //kalman gain matrices
     Eigen::Matrix<double, 9, 6> kalman_gain_gps_;
@@ -51,9 +54,10 @@ private:
     Eigen::Matrix<double, 9, 9> F_imu_;
     Eigen::Matrix<double, 9, 9> G_imu_;
     Eigen::Matrix<double, 9, 6> L_imu_;
-    Eigen::Matrix<double, 6, 6> Q_imu_;
     Eigen::Matrix<double, 6, 9> H_gps_;
+    Eigen::Matrix<double, 6, 6> M_gps_;
     Eigen::Matrix<double, 1, 9> H_wheel_encoder_;
+    Eigen::Matrix<double, 1, 1> M_wheel_encoder_;
 
     //sensor inputs
     Eigen::Matrix<double, 9, 1> imu_input_;
