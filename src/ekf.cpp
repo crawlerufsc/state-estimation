@@ -17,15 +17,19 @@ EKF::EKF(ros::NodeHandle* nodehandle):nh_(*nodehandle)
 void EKF::initMatrices()
 {
     //aux vector for diagonalizing matrices
-    Eigen::Matrix<double, 9, 1> aux_vector;
-    aux_vector << 1, 1, 1, 1, 1, 1, 1, 1, 1;
+    Eigen::Matrix<double, 9, 1> aux_vector_9;
+    aux_vector_9 << 1, 1, 1, 1, 1, 1, 1, 1, 1;
+    Eigen::Matrix<double, 4, 1> aux_vector_4;
+    aux_vector_4 << 1, 1, 1, 1;
+    Eigen::Matrix<double, 2, 1> aux_vector_2;
+    aux_vector_2 << 1, 1;
 
     //define identity matrix
-    identity_matrix_ = aux_vector.asDiagonal();
+    identity_matrix_ = aux_vector_9.asDiagonal();
 
     //define initial state and covariance matrix
     current_state_.setZero();
-    current_covariance_ = aux_vector.asDiagonal()*10;
+    current_covariance_ = aux_vector_9.asDiagonal()*10;
 
     //define initial imu msg time
     double last_time_imu_ = ros::Time::now().toNSec() +
@@ -33,21 +37,18 @@ void EKF::initMatrices()
 
     //init values for jacobians
     //imu
-    F_imu_ = aux_vector.asDiagonal();
+    F_imu_ = aux_vector_9.asDiagonal();
     G_imu_.setZero();
-    L_imu_.setZero();
+    L_imu_ = aux_vector_9.asDiagonal();
     //gps
     H_gps_.setZero();
     H_gps_(0,0) = 1;
     H_gps_(1,1) = 1;
     H_gps_(2,2) = 1;
-    H_gps_(3,3) = 1;
-    H_gps_(4,4) = 1;
-    H_gps_(5,5) = 1;
-    M_gps_.setZero();
+    M_gps_ = aux_vector_4.asDiagonal();;
     //wheel encoder
     H_wheel_encoder_.setZero();
-    M_wheel_encoder_.setZero();
+    M_wheel_encoder_ = aux_vector_2.asDiagonal();
 
     //init values for covariances
     Q_imu_.setZero();
@@ -95,9 +96,6 @@ void EKF::imuCallback(const sensor_msgs::Imu& imu_msg)
     imu_input_(3) = imu_msg.angular_velocity.x;
     imu_input_(4) = imu_msg.angular_velocity.y;
     imu_input_(5) = imu_msg.angular_velocity.z;
-    imu_input_(6) = euler_angles(0);
-    imu_input_(7) = euler_angles(1);
-    imu_input_(8) = euler_angles(2);
 };
 
 //gps callback
@@ -108,8 +106,6 @@ void EKF::gpsCallback(const nav_msgs::Odometry& gps_msg)
     gps_input_(1) = gps_msg.pose.pose.position.y;
     gps_input_(2) = gps_msg.pose.pose.position.z;
     gps_input_(3) = gps_msg.twist.twist.linear.x;
-    gps_input_(4) = gps_msg.twist.twist.linear.y;
-    gps_input_(5) = gps_msg.twist.twist.linear.z;
 };
 
 //gps callback
@@ -117,6 +113,7 @@ void EKF::wheelEncoderCallback(const nav_msgs::Odometry& wheel_encoder_msg)
 {
     //putting values from wheel encoder topic into wheel_encoder_input_ vector
     wheel_encoder_input_(0) = wheel_encoder_msg.twist.twist.linear.x;
+    wheel_encoder_input_(1) = wheel_encoder_msg.twist.twist.angular.z;
 };
 
 //predict state
@@ -136,9 +133,6 @@ void EKF::predict()
     F_imu_(2,5) = (current_time_imu_ - last_time_imu_);
 
     //update time differences in G matrix
-    G_imu_(0,0) = pow(current_time_imu_ - last_time_imu_, 2)/2;
-    G_imu_(1,1) = pow(current_time_imu_ - last_time_imu_, 2)/2;
-    G_imu_(2,2) = pow(current_time_imu_ - last_time_imu_, 2)/2;
     G_imu_(3,0) = (current_time_imu_ - last_time_imu_);
     G_imu_(4,1) = (current_time_imu_ - last_time_imu_);
     G_imu_(5,2) = (current_time_imu_ - last_time_imu_);
@@ -164,13 +158,16 @@ void EKF::predict()
 //gps correction
 void EKF::correct_gps()
 {   
-    //avoiding NaN results
-    if((H_gps_*predicted_covariance_*H_gps_.transpose()+
-        M_gps_*R_gps_*M_gps_.transpose()).determinant() == 0)
+
+    if(sqrt(pow(predicted_state_(3), 2) + pow(predicted_state_(4),2)) < 0.000001)
     {
+        H_gps_(3,3) = 0.0;
+        H_gps_(3,4) = 0.0;
         //K_k = 0
         kalman_gain_gps_.setZero();
     } else {
+        H_gps_(3,3) = predicted_state_(3)/sqrt(pow(predicted_state_(3), 2) + pow(predicted_state_(4),2));
+        H_gps_(3,4) = predicted_state_(4)/sqrt(pow(predicted_state_(3), 2) + pow(predicted_state_(4),2));
         //K_k = P_k+1|k * H_k^T * (H_k * P_k+1|k * H_k^T + M_k * R_k * M_k^T)^-1
         kalman_gain_gps_ = predicted_covariance_*H_gps_.transpose()*
                        (H_gps_*predicted_covariance_*H_gps_.transpose()+
@@ -201,6 +198,11 @@ void EKF::correct_wheel_encoder()
         predicted_state_ = corrected_state_;
         predicted_covariance_ = corrected_covariance_;
     };
+    
+    double current_time_wheel_encoder_ = ros::Time::now().toNSec() +
+                                        (ros::Time::now().toNSec()/1000000000);
+
+    H_wheel_encoder_(1,8) = (current_time_wheel_encoder_ - last_time_imu_);
     
     //avoiding NaN results
     if(sqrt(pow(predicted_state_(3), 2) + pow(predicted_state_(4),2)) < 0.000001)

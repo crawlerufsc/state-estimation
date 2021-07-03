@@ -38,31 +38,31 @@ private:
     Eigen::Matrix<double, 9, 1> predicted_state_;
     Eigen::Matrix<double, 9, 1> corrected_state_;
 
+    //sensor inputs
+    Eigen::Matrix<double, 6, 1> imu_input_;
+    Eigen::Matrix<double, 4, 1> gps_input_;
+    Eigen::Matrix<double, 2, 1> wheel_encoder_input_;
+
     //covariance matrices (P_k|k+1, P_k+1|k, P_k+1|k+1 )
     Eigen::Matrix<double, 9, 9> current_covariance_;
     Eigen::Matrix<double, 9, 9> predicted_covariance_;
     Eigen::Matrix<double, 9, 9> corrected_covariance_;
-    Eigen::Matrix<double, 6, 6> Q_imu_;
-    Eigen::Matrix<double, 6, 6> R_gps_;
-    Eigen::Matrix<double, 1, 1> R_wheel_encoder_;
-
-    //kalman gain matrices
-    Eigen::Matrix<double, 9, 6> kalman_gain_gps_;
-    Eigen::Matrix<double, 9, 1> kalman_gain_wheel_encoder_;
+    Eigen::Matrix<double, 9, 9> Q_imu_;
+    Eigen::Matrix<double, 4, 4> R_gps_;
+    Eigen::Matrix<double, 2, 2> R_wheel_encoder_;
 
     //Jacobian matrices
     Eigen::Matrix<double, 9, 9> F_imu_;
-    Eigen::Matrix<double, 9, 9> G_imu_;
-    Eigen::Matrix<double, 9, 6> L_imu_;
-    Eigen::Matrix<double, 6, 9> H_gps_;
-    Eigen::Matrix<double, 6, 6> M_gps_;
-    Eigen::Matrix<double, 1, 9> H_wheel_encoder_;
-    Eigen::Matrix<double, 1, 1> M_wheel_encoder_;
+    Eigen::Matrix<double, 9, 6> G_imu_;
+    Eigen::Matrix<double, 9, 9> L_imu_;
+    Eigen::Matrix<double, 4, 9> H_gps_;
+    Eigen::Matrix<double, 4, 4> M_gps_;
+    Eigen::Matrix<double, 2, 9> H_wheel_encoder_;
+    Eigen::Matrix<double, 2, 2> M_wheel_encoder_;
 
-    //sensor inputs
-    Eigen::Matrix<double, 9, 1> imu_input_;
-    Eigen::Matrix<double, 6, 1> gps_input_;
-    Eigen::Matrix<double, 1, 1> wheel_encoder_input_;
+    //kalman gain matrices
+    Eigen::Matrix<double, 9, 4> kalman_gain_gps_;
+    Eigen::Matrix<double, 9, 2> kalman_gain_wheel_encoder_;
 
     //subscribers and publishers
     ros::Subscriber imu_sub_;
